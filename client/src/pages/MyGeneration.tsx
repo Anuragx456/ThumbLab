@@ -1,8 +1,133 @@
+import { useEffect, useState } from "react"
+import SoftBackdrop from "../components/SoftBackdrop"
+import { dummyThumbnails, type IThumbnail } from "../assets/assets"
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowUpRightIcon, DownloadIcon, TrashIcon } from "lucide-react";
 
 
 const MyGeneration = () => {
+
+  const navigate = useNavigate();
+
+  const aspectRatioClassMap : Record<string, string> = {
+              '16:9': 'aspect-video',
+              '1:1': 'aspect-square',
+              '9:16': 'aspect-[9/16]',
+  }
+
+  const [thumbnails, setThumbnails] = useState<IThumbnail[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchThumbnails = async () => {
+    setThumbnails(dummyThumbnails as unknown as IThumbnail[])
+    setLoading(false)
+  }
+
+  const handleDownload = (image_url: string) => {
+    window.open(image_url, '_blank')
+  }
+
+  const handleDelete = async (id: string) => {
+    console.log(id)
+  }
+
+  useEffect(() => {
+    fetchThumbnails()
+  }, [])
+  
+
   return (
-    <div>MyGeneration</div>
+    <>
+      <SoftBackdrop /> 
+      <div className="mt-32 min-h-screen px-6 md:px-16 lg:px-24 xl:px-32">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-zinc-200 mt-1">My Generations</h1>
+          <p>View and manage all your AI-generated thumbnails.</p>
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({length: 6}).map((_, i)=>(
+              <div key={i} className="rounded-2xl bg-white/6 border border-white/10 animate-pulse h-[260px]"/>
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && thumbnails.length === 0 && (
+          <div className="text-center py-24">
+            <h3 className="text-lg font-semibold text-zinc-200">No thumbnails yet</h3>
+            <p className="text-sm text-zinc-400 mt-2">Generate your first thumbnail to see it here</p>
+          </div>
+        )}
+
+        {/* GRID */}
+        {!loading && thumbnails.length > 0 && (
+          <div className="columns-1 sm:columns-2 lg:columns-3 2xl:columns-4 gap-8">
+            {thumbnails.map((thumb: IThumbnail)=>{
+              const aspectClass = aspectRatioClassMap[thumb.aspect_ratio || '16:9'];
+
+              return (
+                <div key={thumb._id} onClick={() => navigate(`/generate/${thumb._id}`)} className="mb-8 group relative cursor-pointer rounded-2xl bg-white/6 border border-white/10 transition shadow-xl break-inside-avoid overflow-hidden">
+                  {/* IMAGE */}
+                  {thumb.image_url ? (
+                    <img src={thumb.image_url} alt={thumb.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-sm text-zinc-400">
+                      {thumb.isGenerating ? 'Generating...' : 'No Image'}
+                    </div>
+                  )}
+
+                  {thumb.isGenerating && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-sm font-medium text-white">Generating...</div>}
+
+                  {/* INFO */}
+                  <div className="p-4 space-y-2 border-t border-white/10">
+                    <h3 className="text-sm font-semibold text-zinc-100 truncate">{thumb.title}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {thumb.style && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/20">
+                          {thumb.style}
+                        </span>
+                      )}
+                      {thumb.color_scheme && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/20">
+                          {thumb.color_scheme.charAt(0).toUpperCase() + thumb.color_scheme.slice(1)}
+                        </span>
+                      )}
+                      {thumb.aspect_ratio && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">
+                          {thumb.aspect_ratio}
+                        </span>
+                      )}
+                    </div>
+                    {thumb.createdAt && (
+                      <p className="text-[11px] text-zinc-500 pt-1">
+                        {new Date(thumb.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
+
+                  <div onClick={(e) => e.stopPropagation()} className="absolute bottom-2 right-2 max-sm:flex sm:hidden group-hover:flex gap-1.5">
+                    
+                    <TrashIcon onClick={() => handleDelete(thumb._id)} className="size-6 bg-black/50 p-1 rounded hover:bg-pink-600 transition-all"/>
+
+                    <DownloadIcon onClick={() => handleDownload(thumb.image_url!)} className="size-6 bg-black/50 p-1 rounded hover:bg-pink-600 transition-all"/>
+
+                    <Link target="_blank" to={`/preview?thumbnail_url=${thumb.image_url}&title=${thumb.title}`}>
+                      <ArrowUpRightIcon className="size-6 bg-black/50 p-1 rounded hover:bg-pink-600 transition-all"/>
+                    </Link>
+
+                  </div>
+
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </>
   )
 }
 
